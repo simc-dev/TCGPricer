@@ -1,0 +1,1041 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TCGPricer — Showcase Deck</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,600&family=DM+Sans:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --paper: #fbf7ef;
+        --surface: #ffffff;
+        --surface-2: #f4efe6;
+        --ink: #1e2328;
+        --muted: #5b5f5a;
+        --border: rgba(33, 38, 34, 0.14);
+        --moss: #2f6b4f;
+        --moss-strong: #21513b;
+        --honey: #d39b37;
+        --danger: #b23b3b;
+        --shadow: 0 14px 30px rgba(30, 35, 40, 0.1);
+      }
+
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+
+      html {
+        background: var(--paper);
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family: "DM Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(1200px 800px at 20% 20%, rgba(47, 107, 79, 0.08), transparent 55%),
+          radial-gradient(900px 700px at 85% 30%, rgba(211, 155, 55, 0.1), transparent 60%),
+          radial-gradient(900px 900px at 40% 90%, rgba(33, 81, 59, 0.06), transparent 60%),
+          repeating-linear-gradient(0deg, rgba(30, 35, 40, 0.025), rgba(30, 35, 40, 0.025) 1px, transparent 1px, transparent 22px);
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      #viewport {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+      }
+
+      #track {
+        height: 100%;
+        width: 100%;
+        transform: translate3d(0, 0, 0);
+        transition: transform 540ms cubic-bezier(0.2, 0.85, 0.2, 1);
+        will-change: transform;
+      }
+
+      main {
+        position: relative;
+        z-index: 1;
+      }
+
+      .slide {
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+
+      .slide-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        max-height: 100%;
+        overflow: hidden;
+        padding: var(--slide-padding);
+      }
+
+      :root {
+        --title-size: clamp(1.5rem, 5vw, 4rem);
+        --h2-size: clamp(1.25rem, 3.5vw, 2.5rem);
+        --h3-size: clamp(1rem, 2.5vw, 1.75rem);
+        --body-size: clamp(0.75rem, 1.5vw, 1.125rem);
+        --small-size: clamp(0.65rem, 1vw, 0.875rem);
+        --slide-padding: clamp(1rem, 4vw, 4rem);
+        --content-gap: clamp(0.5rem, 2vw, 2rem);
+        --element-gap: clamp(0.25rem, 1vw, 1rem);
+      }
+
+      .card,
+      .container,
+      .content-box {
+        max-width: min(92vw, 1040px);
+        max-height: min(80vh, 700px);
+      }
+
+      .feature-list,
+      .bullet-list {
+        gap: clamp(0.4rem, 1vh, 1rem);
+      }
+
+      .feature-list li,
+      .bullet-list li {
+        font-size: var(--body-size);
+        line-height: 1.4;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+        gap: clamp(0.5rem, 1.5vw, 1rem);
+      }
+
+      img,
+      .image-container {
+        max-width: 100%;
+        max-height: min(50vh, 400px);
+        object-fit: contain;
+      }
+
+      @media (max-height: 700px) {
+        :root {
+          --slide-padding: clamp(0.75rem, 3vw, 2rem);
+          --content-gap: clamp(0.4rem, 1.5vw, 1rem);
+          --title-size: clamp(1.25rem, 4.5vw, 2.5rem);
+          --h2-size: clamp(1rem, 3vw, 1.75rem);
+        }
+      }
+
+      @media (max-height: 600px) {
+        :root {
+          --slide-padding: clamp(0.5rem, 2.5vw, 1.5rem);
+          --content-gap: clamp(0.3rem, 1vw, 0.75rem);
+          --title-size: clamp(1.1rem, 4vw, 2rem);
+          --body-size: clamp(0.7rem, 1.2vw, 0.95rem);
+        }
+
+        .nav-dots,
+        .keyboard-hint,
+        .decorative {
+          display: none;
+        }
+      }
+
+      @media (max-height: 500px) {
+        :root {
+          --slide-padding: clamp(0.4rem, 2vw, 1rem);
+          --title-size: clamp(1rem, 3.5vw, 1.5rem);
+          --h2-size: clamp(0.9rem, 2.5vw, 1.25rem);
+          --body-size: clamp(0.65rem, 1vw, 0.85rem);
+        }
+      }
+
+      @media (max-width: 600px) {
+        :root {
+          --title-size: clamp(1.25rem, 7vw, 2.5rem);
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          transition-duration: 0.2s !important;
+        }
+
+        html {
+          scroll-behavior: auto;
+        }
+      }
+
+      .slide::after {
+        content: "";
+        position: absolute;
+        inset: clamp(0.75rem, 2.5vw, 1.25rem);
+        border: 1px solid rgba(33, 38, 34, 0.11);
+        border-radius: clamp(14px, 2vw, 22px);
+        pointer-events: none;
+      }
+
+      .tab {
+        position: absolute;
+        top: clamp(0.9rem, 3vw, 1.35rem);
+        left: clamp(0.9rem, 3vw, 1.35rem);
+        height: clamp(2.2rem, 5vw, 3.1rem);
+        width: clamp(1.4rem, 3vw, 2rem);
+        border-radius: 999px;
+        background: var(--tab, var(--moss));
+        box-shadow: 0 10px 18px rgba(30, 35, 40, 0.12);
+        border: 1px solid rgba(30, 35, 40, 0.1);
+      }
+
+      .tab::after {
+        content: "";
+        position: absolute;
+        inset: 6px;
+        border-radius: inherit;
+        background: rgba(255, 255, 255, 0.22);
+        filter: blur(0.2px);
+      }
+
+      .card {
+        border-radius: clamp(18px, 2vw, 26px);
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        padding: clamp(1rem, 2.2vw, 1.75rem);
+        backdrop-filter: blur(10px);
+      }
+
+      .kicker {
+        font-size: var(--small-size);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--moss-strong);
+        font-weight: 700;
+      }
+
+      .title {
+        font-family: "Bodoni Moda", serif;
+        font-size: var(--title-size);
+        line-height: 1.02;
+        letter-spacing: -0.02em;
+        margin: 0;
+      }
+
+      .subtitle {
+        margin: 0;
+        font-size: clamp(1rem, 2.2vw, 1.55rem);
+        line-height: 1.25;
+        color: var(--muted);
+        max-width: 56ch;
+      }
+
+      .meta-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--element-gap);
+        margin-bottom: clamp(0.75rem, 2vw, 1.25rem);
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 0.65rem;
+        border-radius: 999px;
+        border: 1px solid rgba(33, 38, 34, 0.14);
+        background: rgba(244, 239, 230, 0.9);
+        font-size: var(--small-size);
+        color: var(--ink);
+      }
+
+      .badge-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--moss);
+      }
+
+      .h2 {
+        margin: 0;
+        font-size: var(--h2-size);
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+
+      .h2 span {
+        font-family: "Bodoni Moda", serif;
+        font-weight: 600;
+        color: var(--moss-strong);
+      }
+
+      .lede {
+        margin: 0;
+        font-size: var(--body-size);
+        color: var(--muted);
+        max-width: 70ch;
+        line-height: 1.5;
+      }
+
+      .bullet-list {
+        margin: 0;
+        padding-left: 1.05rem;
+        display: grid;
+      }
+
+      .bullet-list li {
+        margin: 0;
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: clamp(0.75rem, 2vw, 1.5rem);
+        align-items: stretch;
+      }
+
+      @media (max-width: 860px) {
+        .split {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .step {
+        border-radius: clamp(14px, 1.6vw, 20px);
+        border: 1px solid rgba(33, 38, 34, 0.14);
+        background: rgba(244, 239, 230, 0.9);
+        padding: clamp(0.75rem, 1.75vw, 1.1rem);
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+
+      .step strong {
+        font-size: clamp(0.9rem, 1.8vw, 1.05rem);
+      }
+
+      .step p {
+        margin: 0;
+        font-size: var(--small-size);
+        color: var(--muted);
+        line-height: 1.4;
+      }
+
+      .feature {
+        border-radius: clamp(14px, 1.8vw, 20px);
+        border: 1px solid rgba(33, 38, 34, 0.14);
+        background: rgba(255, 255, 255, 0.86);
+        padding: clamp(0.75rem, 1.8vw, 1.15rem);
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+      }
+
+      .feature h3 {
+        margin: 0;
+        font-size: clamp(1rem, 2vw, 1.2rem);
+        letter-spacing: -0.01em;
+      }
+
+      .feature p {
+        margin: 0;
+        color: var(--muted);
+        font-size: var(--small-size);
+        line-height: 1.4;
+      }
+
+      .callout {
+        border-radius: clamp(16px, 2vw, 22px);
+        border: 1px solid rgba(33, 38, 34, 0.16);
+        background: rgba(255, 255, 255, 0.92);
+        padding: clamp(0.9rem, 2vw, 1.35rem);
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      .callout .row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+
+      .callout .row span {
+        font-size: var(--small-size);
+        color: var(--muted);
+      }
+
+      .callout .row strong {
+        font-weight: 800;
+      }
+
+      .cta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        padding: 0.7rem 1rem;
+        border-radius: 999px;
+        background: var(--moss);
+        border: 1px solid rgba(30, 35, 40, 0.16);
+        color: #fff;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        text-decoration: none;
+        box-shadow: 0 12px 22px rgba(47, 107, 79, 0.26);
+      }
+
+      .button:focus-visible {
+        outline: 3px solid rgba(211, 155, 55, 0.55);
+        outline-offset: 4px;
+      }
+
+      .button-secondary {
+        background: rgba(244, 239, 230, 0.95);
+        color: var(--ink);
+        box-shadow: none;
+      }
+
+      .hud {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding: clamp(0.6rem, 2vw, 1.1rem);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        pointer-events: none;
+        z-index: 20;
+      }
+
+      .hud > * {
+        pointer-events: auto;
+      }
+
+      .progress {
+        flex: 1;
+        max-width: min(50vw, 460px);
+        height: 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(33, 38, 34, 0.14);
+        background: rgba(255, 255, 255, 0.7);
+        overflow: hidden;
+      }
+
+      .progress > div {
+        height: 100%;
+        width: 0%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--moss), var(--honey));
+        transition: width 260ms ease;
+      }
+
+      .index-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.45rem 0.7rem;
+        border-radius: 999px;
+        border: 1px solid rgba(33, 38, 34, 0.14);
+        background: rgba(255, 255, 255, 0.85);
+        font-size: var(--small-size);
+        color: var(--muted);
+        backdrop-filter: blur(10px);
+      }
+
+      .keyboard-hint {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.35rem 0.55rem;
+        border-radius: 999px;
+        border: 1px solid rgba(33, 38, 34, 0.12);
+        background: rgba(244, 239, 230, 0.9);
+        color: var(--muted);
+        font-size: var(--small-size);
+      }
+
+      .key {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        padding: 0.2rem 0.4rem;
+        border-radius: 10px;
+        border: 1px solid rgba(33, 38, 34, 0.14);
+        background: rgba(255, 255, 255, 0.85);
+        color: var(--ink);
+      }
+
+      .nav-dots {
+        position: fixed;
+        right: clamp(0.75rem, 2vw, 1.2rem);
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+        z-index: 20;
+      }
+
+      .nav-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(33, 38, 34, 0.2);
+        background: rgba(255, 255, 255, 0.7);
+        cursor: pointer;
+        transition: transform 180ms ease, background 180ms ease;
+      }
+
+      .nav-dot[aria-current="true"] {
+        background: var(--moss);
+        transform: scale(1.25);
+        border-color: rgba(33, 81, 59, 0.5);
+      }
+
+      [data-reveal] {
+        opacity: 0;
+        transform: translateY(14px);
+        transition: opacity 700ms cubic-bezier(0.2, 0.85, 0.2, 1), transform 700ms cubic-bezier(0.2, 0.85, 0.2, 1);
+        transition-delay: calc(var(--d, 0) * 1ms);
+        will-change: transform, opacity;
+      }
+
+      .slide.is-active [data-reveal] {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="viewport">
+      <main aria-label="TCGPricer presentation deck">
+        <div id="track">
+      <section class="slide" aria-label="Title" style="--tab: var(--moss)">
+        <div class="tab" aria-hidden="true"></div>
+        <div class="slide-content">
+          <div class="card container">
+            <div class="meta-row" data-reveal style="--d: 40">
+              <div class="badge">
+                <span class="badge-dot" aria-hidden="true"></span>
+                <span>SG-first TCG pricing workflow</span>
+              </div>
+              <div class="keyboard-hint" aria-hidden="true">
+                <span class="key">↓</span>
+                <span class="key">Space</span>
+              </div>
+            </div>
+            <p class="kicker" data-reveal style="--d: 110">TCG pricing assistant</p>
+            <h1 class="title" data-reveal style="--d: 170">TCGPricer</h1>
+            <p class="subtitle" data-reveal style="--d: 250">Scan a card, verify identity, and save buy/sell suggestions to Google Sheets.</p>
+            <div style="height: var(--content-gap)"></div>
+            <div class="split" data-reveal style="--d: 330">
+              <div class="callout">
+                <div class="row">
+                  <strong>Scan → Verify → Sheet</strong>
+                  <span>fast, repeatable, auditable</span>
+                </div>
+                <div class="row">
+                  <strong>Benchmark from real listings</strong>
+                  <span>Carousell / Mercari / more</span>
+                </div>
+              </div>
+              <div class="callout" style="border-color: rgba(47, 107, 79, 0.3)">
+                <div class="row">
+                  <strong>Built for shops</strong>
+                  <span>counter speed + safety gates</span>
+                </div>
+                <div class="row">
+                  <strong>Inventory builds itself</strong>
+                  <span>one scan at a time</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" aria-label="Problem" style="--tab: var(--honey)">
+        <div class="tab" aria-hidden="true"></div>
+        <div class="slide-content">
+          <div class="card container">
+            <p class="kicker" data-reveal style="--d: 40">Why this exists</p>
+            <h2 class="h2" data-reveal style="--d: 120">Pricing is <span>slow</span> when the work is not structured</h2>
+            <div style="height: var(--element-gap)"></div>
+            <p class="lede" data-reveal style="--d: 210">
+              Shops need a repeatable loop: identify the exact card, benchmark from real listings, decide buy/sell, and log it for later. Generic scanning tools
+              don’t enforce that workflow.
+            </p>
+            <div style="height: var(--content-gap)"></div>
+            <div class="grid" data-reveal style="--d: 310">
+              <div class="feature">
+                <h3>Identity ambiguity</h3>
+                <p>Variants, conditions, and edition details get missed under time pressure.</p>
+              </div>
+              <div class="feature">
+                <h3>Pricing noise</h3>
+                <p>Outliers, bait listings, and stale posts distort quick “lookups”.</p>
+              </div>
+              <div class="feature">
+                <h3>No audit trail</h3>
+                <p>Decisions aren’t logged with sources, notes, or confidence.</p>
+              </div>
+              <div class="feature">
+                <h3>Inventory friction</h3>
+                <p>Manual entry doesn’t keep up with real-world intake volume.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" aria-label="Solution" style="--tab: var(--moss-strong)">
+        <div class="tab" aria-hidden="true"></div>
+        <div class="slide-content">
+          <div class="card container">
+            <p class="kicker" data-reveal style="--d: 40">The core loop</p>
+            <h2 class="h2" data-reveal style="--d: 120">A <span>shop-native</span> workflow that stays fast</h2>
+            <div style="height: var(--content-gap)"></div>
+            <div class="split" data-reveal style="--d: 220">
+              <div class="callout">
+                <div class="row">
+                  <strong>1) Scan</strong>
+                  <span>camera capture + extraction</span>
+                </div>
+                <p class="lede" style="margin: 0">
+                  Extracts card identity, then asks you to confirm the details that matter before any price logic runs.
+                </p>
+              </div>
+              <div class="callout">
+                <div class="row">
+                  <strong>2) Quote</strong>
+                  <span>multi-source benchmark</span>
+                </div>
+                <p class="lede" style="margin: 0">
+                  Pulls recent listings and produces a benchmark price with transparent notes on why each source did or didn’t count.
+                </p>
+              </div>
+            </div>
+            <div style="height: var(--element-gap)"></div>
+            <div class="split" data-reveal style="--d: 320">
+              <div class="callout">
+                <div class="row">
+                  <strong>3) Gate</strong>
+                  <span>risk-based approval</span>
+                </div>
+                <p class="lede" style="margin: 0">
+                  Requires manual approval when the quote is high-value or low-confidence, preventing costly mistakes.
+                </p>
+              </div>
+              <div class="callout">
+                <div class="row">
+                  <strong>4) Save</strong>
+                  <span>Google Sheets logging</span>
+                </div>
+                <p class="lede" style="margin: 0">
+                  One click appends a clean row: identity, benchmark, buy/sell suggestion, sources, and notes.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" aria-label="Workflow details" style="--tab: rgba(47, 107, 79, 0.85)">
+        <div class="tab" aria-hidden="true"></div>
+        <div class="slide-content">
+          <div class="card container">
+            <p class="kicker" data-reveal style="--d: 40">Experience</p>
+            <h2 class="h2" data-reveal style="--d: 120">Designed for <span>counter speed</span> and clarity</h2>
+            <div style="height: var(--content-gap)"></div>
+            <div class="grid" data-reveal style="--d: 240">
+              <div class="step">
+                <strong>Fast confirmation</strong>
+                <p>Verifies identity before pricing to reduce variant mistakes.</p>
+              </div>
+              <div class="step">
+                <strong>Two modes</strong>
+                <p>Flow A for full verification, Flow B for quick batch intake.</p>
+              </div>
+              <div class="step">
+                <strong>Transparent notes</strong>
+                <p>Explains benchmark choice and filters bait/outliers.</p>
+              </div>
+              <div class="step">
+                <strong>Sheets-ready output</strong>
+                <p>Simple row schema to plug into inventory and accounting workflows.</p>
+              </div>
+              <div class="step">
+                <strong>Shop-safe defaults</strong>
+                <p>Manual approval when value is high or confidence is low.</p>
+              </div>
+              <div class="step">
+                <strong>Incremental inventory</strong>
+                <p>Every save makes your inventory more complete without extra steps.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" aria-label="Pricing engine" style="--tab: var(--honey)">
+        <div class="tab" aria-hidden="true"></div>
+        <div class="slide-content">
+          <div class="card container">
+            <p class="kicker" data-reveal style="--d: 40">Pricing logic</p>
+            <h2 class="h2" data-reveal style="--d: 120">Benchmark from the <span>best available</span> market data</h2>
+            <div style="height: var(--element-gap)"></div>
+            <p class="lede" data-reveal style="--d: 200">
+              Source priority is explicit and fallback-driven: Carousell → Mercari → Yuyutei (in-stock) → PriceCharting. A benchmark wins only when there are
+              enough clean listings and the signal is stable.
+            </p>
+            <div style="height: var(--content-gap)"></div>
+            <div class="split" data-reveal style="--d: 310">
+              <div class="callout">
+                <div class="row">
+                  <strong>Output: benchmark</strong>
+                  <span>median-based signal</span>
+                </div>
+                <ul class="bullet-list">
+                  <li>Recent listing window + outlier controls</li>
+                  <li>Condition and variant adjustments</li>
+                  <li>Notes explain why each listing counted</li>
+                </ul>
+              </div>
+              <div class="callout">
+                <div class="row">
+                  <strong>Output: suggestion</strong>
+                  <span>buy / sell guardrails</span>
+                </div>
+                <ul class="bullet-list">
+                  <li>Modes: buy / sell / consignment support</li>
+                  <li>Rounding rules for quick quoting</li>
+                  <li>Confidence reported with ambiguity flags</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" aria-label="Approval gating" style="--tab: rgba(178, 59, 59, 0.9)">
+        <div class="tab" aria-hidden="true"></div>
+        <div class="slide-content">
+          <div class="card container">
+            <p class="kicker" data-reveal style="--d: 40">Safety rails</p>
+            <h2 class="h2" data-reveal style="--d: 120">High-risk quotes require <span>manual approval</span></h2>
+            <div style="height: var(--content-gap)"></div>
+            <div class="split" data-reveal style="--d: 240">
+              <div class="callout" style="border-color: rgba(178, 59, 59, 0.28)">
+                <div class="row">
+                  <strong>Triggers</strong>
+                  <span>avoid expensive mistakes</span>
+                </div>
+                <ul class="bullet-list">
+                  <li>Benchmark above a high-value threshold (e.g., &gt; 100 SGD)</li>
+                  <li>Confidence below target (e.g., &lt; 0.90)</li>
+                  <li>Variant ambiguity or incomplete identity confirmation</li>
+                </ul>
+              </div>
+              <div class="callout">
+                <div class="row">
+                  <strong>Result</strong>
+                  <span>pit of success</span>
+                </div>
+                <p class="lede" style="margin: 0">
+                  The app slows you down only when the situation is risky. Everything else stays fast: confirm, quote, save.
+                </p>
+                <div style="height: 0.75rem"></div>
+                <div class="badge" style="justify-content: space-between">
+                  <span style="display: inline-flex; align-items: center; gap: 0.5rem">
+                    <span class="badge-dot" aria-hidden="true" style="background: var(--danger)"></span>
+                    <span>Gate required</span>
+                  </span>
+                  <span>approve → save enabled</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" aria-label="Batch & inventory" style="--tab: rgba(211, 155, 55, 0.85)">
+        <div class="tab" aria-hidden="true"></div>
+        <div class="slide-content">
+          <div class="card container">
+            <p class="kicker" data-reveal style="--d: 40">Operational fit</p>
+            <h2 class="h2" data-reveal style="--d: 120">Two pathways: <span>batch intake</span> and inventory build</h2>
+            <div style="height: var(--content-gap)"></div>
+            <div class="grid" data-reveal style="--d: 240">
+              <div class="feature">
+                <h3>Batch mode</h3>
+                <p>Speed through multiple scans at the counter, then verify and save in a focused pass.</p>
+              </div>
+              <div class="feature">
+                <h3>Inventory pages</h3>
+                <p>Browse by key, review past scans, and maintain a living list of priced items.</p>
+              </div>
+              <div class="feature">
+                <h3>Settings surface</h3>
+                <p>Configure sources and integrations (Sheets, pricing providers) without touching code.</p>
+              </div>
+              <div class="feature">
+                <h3>Notes as a feature</h3>
+                <p>Every quote carries traceability: sources, filters, and reasoning so staff can trust it.</p>
+              </div>
+            </div>
+            <div style="height: var(--element-gap)"></div>
+            <div class="callout" data-reveal style="--d: 330">
+              <div class="row">
+                <strong>Outcome</strong>
+                <span>more scans → better inventory</span>
+              </div>
+              <p class="lede" style="margin: 0">
+                Inventory gets stronger as a side-effect of quoting, not as a separate admin job.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" aria-label="Close" style="--tab: var(--moss)">
+        <div class="tab" aria-hidden="true"></div>
+        <div class="slide-content">
+          <div class="card container">
+            <p class="kicker" data-reveal style="--d: 40">Wrap-up</p>
+            <h2 class="h2" data-reveal style="--d: 120">Ready to <span>demo</span></h2>
+            <div style="height: var(--element-gap)"></div>
+            <p class="lede" data-reveal style="--d: 200">
+              The story is simple: enforce the workflow (identity → benchmark → suggestion → save), keep it fast for shops, and add safety rails for high-risk
+              quotes.
+            </p>
+            <div style="height: var(--content-gap)"></div>
+            <div class="split" data-reveal style="--d: 300">
+              <div class="callout">
+                <div class="row">
+                  <strong>Suggested live demo</strong>
+                  <span>90 seconds</span>
+                </div>
+                <ul class="bullet-list">
+                  <li>Scan a card</li>
+                  <li>Confirm identity</li>
+                  <li>Show benchmark + notes</li>
+                  <li>Approve (if gated) → save to Sheets</li>
+                </ul>
+              </div>
+              <div class="callout">
+                <div class="row">
+                  <strong>Next upgrade paths</strong>
+                  <span>after MVP</span>
+                </div>
+                <ul class="bullet-list">
+                  <li>Staff roles + audit log</li>
+                  <li>Condition photo capture</li>
+                  <li>More marketplaces & local FX rules</li>
+                  <li>Exports beyond Sheets</li>
+                </ul>
+              </div>
+            </div>
+            <div style="height: var(--content-gap)"></div>
+            <div class="cta" data-reveal style="--d: 390">
+              <div class="index-pill">
+                <span aria-hidden="true">TCGPricer</span>
+                <span>showcase deck</span>
+              </div>
+              <div style="display: flex; gap: 0.6rem; flex-wrap: wrap">
+                <a class="button button-secondary" href="#slide-1">Restart</a>
+                <a class="button" href="#slide-3">Jump to workflow</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+        </div>
+      </main>
+    </div>
+
+    <nav class="hud" aria-label="Presentation controls">
+      <div class="progress" aria-hidden="true"><div id="progressFill"></div></div>
+      <div class="index-pill">
+        <span id="slideIndex" aria-live="polite">1 / 8</span>
+      </div>
+    </nav>
+
+    <div class="nav-dots" id="navDots" aria-label="Slide navigation"></div>
+
+    <script>
+      class DeckController {
+        constructor() {
+          this.track = document.getElementById("track");
+          this.slides = Array.from(document.querySelectorAll(".slide"));
+          this.progressFill = document.getElementById("progressFill");
+          this.slideIndexEl = document.getElementById("slideIndex");
+          this.navDotsEl = document.getElementById("navDots");
+          this.currentIndex = 0;
+          this.lastWheelAt = 0;
+          this.touchStartY = null;
+
+          this.slides.forEach((slide, idx) => {
+            slide.id = `slide-${idx + 1}`;
+          });
+
+          this.dots = this.slides.map((_, idx) => {
+            const btn = document.createElement("button");
+            btn.className = "nav-dot";
+            btn.type = "button";
+            btn.setAttribute("aria-label", `Go to slide ${idx + 1}`);
+            btn.addEventListener("click", () => this.goTo(idx));
+            this.navDotsEl.appendChild(btn);
+            return btn;
+          });
+
+          window.addEventListener("keydown", (e) => this.onKey(e));
+          window.addEventListener("wheel", (e) => this.onWheel(e), { passive: true });
+          window.addEventListener("touchstart", (e) => this.onTouchStart(e), { passive: true });
+          window.addEventListener("touchend", (e) => this.onTouchEnd(e), { passive: true });
+          window.addEventListener("resize", () => this.applyTransform({ smooth: false }));
+
+          window.addEventListener("hashchange", () => this.syncFromHash());
+          this.syncFromHash();
+          this.goTo(this.currentIndex, { smooth: false, updateHash: false });
+        }
+
+        syncFromHash() {
+          const hash = (window.location.hash || "").trim();
+          const m = hash.match(/^#slide-(\d+)$/);
+          if (!m) return;
+          const idx = Math.max(0, Math.min(this.slides.length - 1, Number(m[1]) - 1));
+          this.goTo(idx, { smooth: false, updateHash: false });
+        }
+
+        setActive(idx) {
+          this.currentIndex = idx;
+          this.slides.forEach((s, i) => s.classList.toggle("is-active", i === idx));
+          this.dots.forEach((d, i) => d.setAttribute("aria-current", i === idx ? "true" : "false"));
+          const total = this.slides.length;
+          const pct = total <= 1 ? 100 : (idx / (total - 1)) * 100;
+          this.progressFill.style.width = `${pct}%`;
+          this.slideIndexEl.textContent = `${idx + 1} / ${total}`;
+        }
+
+        applyTransform(opts = {}) {
+          const { smooth = true } = opts;
+          const y = -1 * this.currentIndex * window.innerHeight;
+          const nextTransform = `translate3d(0, ${y}px, 0)`;
+          if (smooth) {
+            this.track.style.transform = nextTransform;
+            return;
+          }
+          const prevTransition = this.track.style.transition;
+          this.track.style.transition = "none";
+          this.track.style.transform = nextTransform;
+          this.track.offsetHeight;
+          this.track.style.transition = prevTransition;
+        }
+
+        goTo(idx, opts = {}) {
+          const { smooth = true, updateHash = true } = opts;
+          const target = this.slides[idx];
+          if (!target) return;
+          if (updateHash) window.location.hash = target.id;
+          this.setActive(idx);
+          this.applyTransform({ smooth });
+        }
+
+        next() {
+          this.goTo(Math.min(this.slides.length - 1, this.currentIndex + 1));
+        }
+
+        prev() {
+          this.goTo(Math.max(0, this.currentIndex - 1));
+        }
+
+        onKey(e) {
+          const k = e.key;
+          if (k === "ArrowDown" || k === "PageDown" || k === " " || k === "Enter") {
+            e.preventDefault();
+            this.next();
+            return;
+          }
+          if (k === "ArrowUp" || k === "PageUp") {
+            e.preventDefault();
+            this.prev();
+            return;
+          }
+          if (k === "Home") {
+            e.preventDefault();
+            this.goTo(0);
+            return;
+          }
+          if (k === "End") {
+            e.preventDefault();
+            this.goTo(this.slides.length - 1);
+          }
+        }
+
+        onWheel(e) {
+          const now = Date.now();
+          if (now - this.lastWheelAt < 520) return;
+          if (Math.abs(e.deltaY) < 20) return;
+          this.lastWheelAt = now;
+          if (e.deltaY > 0) this.next();
+          else this.prev();
+        }
+
+        onTouchStart(e) {
+          const t = e.changedTouches && e.changedTouches[0];
+          if (!t) return;
+          this.touchStartY = t.clientY;
+        }
+
+        onTouchEnd(e) {
+          const t = e.changedTouches && e.changedTouches[0];
+          if (!t || this.touchStartY === null) return;
+          const dy = t.clientY - this.touchStartY;
+          this.touchStartY = null;
+          if (Math.abs(dy) < 42) return;
+          if (dy < 0) this.next();
+          else this.prev();
+        }
+      }
+
+      window.addEventListener("DOMContentLoaded", () => {
+        new DeckController();
+      });
+    </script>
+  </body>
+</html>

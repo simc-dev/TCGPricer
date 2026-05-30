@@ -1,0 +1,5 @@
+[
+  { "id": "a", "title": "Listing A", "price": 120, "createdAt": "2025-01-01T00:00:00.000Z" },
+  { "id": "b", "title": "Listing B", "price": "85", "createdAt": "2025-01-02T00:00:00.000Z" },
+  { "id": "c", "title": "Listing C", "price": 99, "createdAt": "2025-01-03T00:00:00.000Z" }
+]
