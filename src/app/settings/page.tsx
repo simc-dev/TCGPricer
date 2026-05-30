@@ -1,10 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
+import {
+  SIMPLE_PRESETS,
+  buyRoundingLabel,
+  mapSimpleToAdvanced,
+  presetLabel as simplePresetLabel,
+  sellRoundingLabel,
+  type SimplePricingPreset,
+} from "@/lib/settings/advancedPricingUi";
 import { getStoredSettings, setStoredSettings } from "@/lib/settings/storage";
-import { DEFAULT_SETTINGS, type AppSettings, type SellRoundingPreset } from "@/lib/settings/types";
+import { getPricingUiMode, setPricingUiMode as persistPricingUiMode, type PricingUiMode } from "@/lib/settings/uiStorage";
+import { DEFAULT_SETTINGS, type AppSettings } from "@/lib/settings/types";
 import type { PriceSource } from "@/lib/types";
 
 const sourceMeta: Array<{ key: PriceSource; label: string; description: string }> = [
@@ -25,18 +34,179 @@ function formatSavedTime(iso: string): string {
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(d);
 }
 
-function presetLabel(p: SellRoundingPreset): string {
-  if (p === "off") return "Off";
-  if (p === "conservative") return "Conservative";
-  return "Retail";
+function presetFromT(t: number): SimplePricingPreset {
+  if (t < 0.25) return "margin";
+  if (t > 0.75) return "volume";
+  return "balance";
+}
+
+function tFromBuylistMultiplier(buylistMultiplier: number): number {
+  const m = SIMPLE_PRESETS.margin.buylistMultiplier;
+  const b = SIMPLE_PRESETS.balance.buylistMultiplier;
+  const v = SIMPLE_PRESETS.volume.buylistMultiplier;
+
+  if (buylistMultiplier <= b) {
+    const local = (buylistMultiplier - m) / (b - m);
+    return clamp(local, 0, 1) * 0.5;
+  }
+
+  const local = (buylistMultiplier - b) / (v - b);
+  return 0.5 + clamp(local, 0, 1) * 0.5;
 }
 
 export default function SettingsPage() {
-  const [baseline, setBaseline] = useState<AppSettings>(() => getStoredSettings());
-  const [draft, setDraft] = useState<AppSettings>(() => baseline);
+  const [baseline, setBaseline] = useState<AppSettings>(() => DEFAULT_SETTINGS);
+  const [draft, setDraft] = useState<AppSettings>(() => DEFAULT_SETTINGS);
   const [savedAtIso, setSavedAtIso] = useState<string | null>(null);
+  const [pricingUiMode, setPricingUiMode] = useState<PricingUiMode>(() => getPricingUiMode());
+
+  useEffect(() => {
+    const next = getStoredSettings();
+    setBaseline(next);
+    setDraft(next);
+  }, []);
 
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(baseline), [draft, baseline]);
+  const simpleT = useMemo(() => tFromBuylistMultiplier(draft.advanced.buylistMultiplier), [draft.advanced.buylistMultiplier]);
+  const simplePct = useMemo(() => Math.round(simpleT * 100), [simpleT]);
+  const simplePreset = useMemo(() => presetFromT(simpleT), [simpleT]);
+
+  const expertControls = (
+    <div className="grid gap-5">
+      <div className="grid gap-2">
+        <div className="flex items-end justify-between gap-3">
+          <div className="text-sm font-semibold text-foreground">How much you pay (vs benchmark)</div>
+          <div className="shrink-0 rounded-full bg-surface2 px-2 py-1 text-xs font-semibold tabular-nums text-muted ring-1 ring-border">
+            ~{Math.round(draft.advanced.buylistMultiplier * 100)}%
+          </div>
+        </div>
+        <input
+          type="range"
+          min={0.3}
+          max={0.95}
+          step={0.05}
+          value={draft.advanced.buylistMultiplier}
+          className="w-full accent-accentStrong"
+          onChange={(e) => {
+            const next = clamp(Number(e.target.value), 0.05, 1.2);
+            setDraft((d) => ({ ...d, advanced: { ...d.advanced, buylistMultiplier: next } }));
+            setSavedAtIso(null);
+          }}
+        />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl bg-surface2 p-3 text-xs leading-5 text-muted ring-1 ring-border">
+            Suggested buy = benchmark × multiplier.
+          </div>
+          <label className="grid gap-1">
+            <div className="text-xs font-semibold text-muted">Exact multiplier</div>
+            <input
+              type="number"
+              inputMode="decimal"
+              step={0.01}
+              min={0}
+              max={2}
+              value={draft.advanced.buylistMultiplier}
+              className="h-11 rounded-xl bg-surface px-3 text-sm text-foreground ring-1 ring-border focus:outline-none focus:ring-2 focus:ring-accentStrong"
+              onChange={(e) => {
+                const next = clamp(Number(e.target.value), 0.05, 2);
+                setDraft((d) => ({ ...d, advanced: { ...d.advanced, buylistMultiplier: next } }));
+                setSavedAtIso(null);
+              }}
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className="grid gap-2">
+        <div className="text-sm font-semibold text-foreground">Round buy suggestions</div>
+        <div className="grid grid-cols-2 rounded-xl bg-surface2 p-1 text-sm font-semibold text-muted shadow-sm ring-1 ring-border">
+          {[0.5, 1].map((v) => (
+            <button
+              key={v}
+              type="button"
+              className={[
+                "h-10 rounded-lg transition",
+                draft.advanced.buyRounding === v
+                  ? "bg-surface text-foreground shadow-sm ring-1 ring-border"
+                  : "hover:bg-surface/70 hover:text-foreground",
+              ].join(" ")}
+              onClick={() => {
+                setDraft((d) => ({ ...d, advanced: { ...d.advanced, buyRounding: v as 0.5 | 1 } }));
+                setSavedAtIso(null);
+              }}
+            >
+              {buyRoundingLabel(v as 0.5 | 1)}
+            </button>
+          ))}
+        </div>
+        <div className="text-xs leading-5 text-muted">Rounds buy suggestions to the chosen increment.</div>
+      </div>
+
+      <div className="grid gap-3">
+        <div className="text-sm font-semibold text-foreground">Adjust sell by condition</div>
+        <div className="grid grid-cols-3 gap-3">
+          {(
+            [
+              ["nm", "Near mint"],
+              ["lp", "Light play"],
+              ["mp", "Moderate play"],
+            ] as const
+          ).map(([cond, label]) => (
+            <label key={cond} className="grid gap-1">
+              <div className="text-xs font-semibold text-muted">{label}</div>
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                max={90}
+                step={1}
+                value={Math.round(clamp(draft.advanced.conditionDiscounts[cond] * 100, 0, 90))}
+                className="h-11 rounded-xl bg-surface px-3 text-sm text-foreground ring-1 ring-border focus:outline-none focus:ring-2 focus:ring-accentStrong"
+                onChange={(e) => {
+                  const pct = clamp(Number(e.target.value), 0, 90);
+                  setDraft((d) => ({
+                    ...d,
+                    advanced: {
+                      ...d.advanced,
+                      conditionDiscounts: { ...d.advanced.conditionDiscounts, [cond]: pct / 100 },
+                    },
+                  }));
+                  setSavedAtIso(null);
+                }}
+              />
+              <div className="text-[11px] font-medium text-muted">%</div>
+            </label>
+          ))}
+        </div>
+        <div className="text-xs leading-5 text-muted">Applied to the benchmark before sell rounding.</div>
+      </div>
+
+      <div className="grid gap-2">
+        <div className="text-sm font-semibold text-foreground">Round sell prices</div>
+        <div className="grid grid-cols-3 rounded-xl bg-surface2 p-1 text-sm font-semibold text-muted shadow-sm ring-1 ring-border">
+          {(["off", "conservative", "retail"] as const).map((p) => (
+            <button
+              key={p}
+              type="button"
+              className={[
+                "h-10 rounded-lg transition",
+                draft.advanced.sellRoundingPreset === p
+                  ? "bg-surface text-foreground shadow-sm ring-1 ring-border"
+                  : "hover:bg-surface/70 hover:text-foreground",
+              ].join(" ")}
+              onClick={() => {
+                setDraft((d) => ({ ...d, advanced: { ...d.advanced, sellRoundingPreset: p } }));
+                setSavedAtIso(null);
+              }}
+            >
+              {sellRoundingLabel(p)}
+            </button>
+          ))}
+        </div>
+        <div className="text-xs leading-5 text-muted">Rounds final sell suggestions after condition adjustments.</div>
+      </div>
+    </div>
+  );
 
   return (
     <main className="flex-1">
@@ -120,136 +290,158 @@ export default function SettingsPage() {
         </section>
 
         <section className="rounded-3xl bg-surface/85 p-5 shadow-sm ring-1 ring-border backdrop-blur">
-          <div className="font-display text-lg font-semibold text-foreground">Advanced</div>
-          <div className="mt-1 text-sm leading-6 text-muted">Fine-tune buylist math and sell rounding behavior.</div>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="font-display text-lg font-semibold text-foreground">Advanced pricing</div>
+              <div className="mt-1 text-sm leading-6 text-muted">Pick a style, then fine-tune if you need to.</div>
+            </div>
+            <div className="shrink-0">
+              <div className="grid grid-cols-2 rounded-xl bg-surface2 p-1 text-sm font-semibold text-muted shadow-sm ring-1 ring-border">
+                <button
+                  type="button"
+                  className={[
+                    "h-10 rounded-lg transition",
+                    pricingUiMode === "simple"
+                      ? "bg-surface text-foreground shadow-sm ring-1 ring-border"
+                      : "hover:bg-surface/60",
+                  ].join(" ")}
+                  onClick={() => {
+                    setPricingUiMode("simple");
+                    persistPricingUiMode("simple");
+                  }}
+                >
+                  Simple
+                </button>
+                <button
+                  type="button"
+                  className={[
+                    "h-10 rounded-lg transition",
+                    pricingUiMode === "expert"
+                      ? "bg-surface text-foreground shadow-sm ring-1 ring-border"
+                      : "hover:bg-surface/60",
+                  ].join(" ")}
+                  onClick={() => {
+                    setPricingUiMode("expert");
+                    persistPricingUiMode("expert");
+                  }}
+                >
+                  Expert
+                </button>
+              </div>
+            </div>
+          </div>
 
           <div className="mt-5 grid gap-5">
-            <div className="grid gap-2">
-              <div className="flex items-end justify-between gap-3">
-                <div className="text-sm font-semibold text-foreground">Buylist multiplier</div>
-                <div className="shrink-0 rounded-full bg-surface2 px-2 py-1 text-xs font-semibold tabular-nums text-muted ring-1 ring-border">
-                  ×{draft.advanced.buylistMultiplier.toFixed(2)}
-                </div>
-              </div>
-              <input
-                type="range"
-                min={0.3}
-                max={0.95}
-                step={0.05}
-                value={draft.advanced.buylistMultiplier}
-                className="w-full accent-accentStrong"
-                onChange={(e) => {
-                  const next = clamp(Number(e.target.value), 0.05, 1.2);
-                  setDraft((d) => ({ ...d, advanced: { ...d.advanced, buylistMultiplier: next } }));
-                  setSavedAtIso(null);
-                }}
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-2xl bg-surface2 p-3 text-xs leading-5 text-muted ring-1 ring-border">
-                  Lower multipliers are more conservative. Suggested buy = benchmark × multiplier.
-                </div>
-                <label className="grid gap-1">
-                  <div className="text-xs font-semibold text-muted">Exact value</div>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step={0.01}
-                    min={0}
-                    max={2}
-                    value={draft.advanced.buylistMultiplier}
-                    className="h-11 rounded-xl bg-surface px-3 text-sm text-foreground ring-1 ring-border focus:outline-none focus:ring-2 focus:ring-accentStrong"
-                    onChange={(e) => {
-                      const next = clamp(Number(e.target.value), 0.05, 2);
-                      setDraft((d) => ({ ...d, advanced: { ...d.advanced, buylistMultiplier: next } }));
-                      setSavedAtIso(null);
-                    }}
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <div className="text-sm font-semibold text-foreground">Buy rounding</div>
-              <div className="grid grid-cols-2 rounded-xl bg-surface2 p-1 text-sm font-semibold text-muted shadow-sm ring-1 ring-border">
-                {[0.5, 1].map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    className={[
-                      "h-10 rounded-lg transition",
-                      draft.advanced.buyRounding === v
-                        ? "bg-surface text-foreground shadow-sm ring-1 ring-border"
-                        : "hover:bg-surface/70 hover:text-foreground",
-                    ].join(" ")}
-                    onClick={() => {
-                      setDraft((d) => ({ ...d, advanced: { ...d.advanced, buyRounding: v as 0.5 | 1 } }));
-                      setSavedAtIso(null);
-                    }}
-                  >
-                    {v === 0.5 ? "$0.50" : "$1.00"}
-                  </button>
-                ))}
-              </div>
-              <div className="text-xs leading-5 text-muted">Rounds buy suggestions to the nearest increment.</div>
-            </div>
-
             <div className="grid gap-3">
-              <div className="text-sm font-semibold text-foreground">Sell condition discounts</div>
+              <div className="text-sm font-semibold text-foreground">Pricing style</div>
               <div className="grid grid-cols-3 gap-3">
-                {(["nm", "lp", "mp"] as const).map((cond) => (
-                  <label key={cond} className="grid gap-1">
-                    <div className="text-xs font-semibold text-muted">{cond.toUpperCase()}</div>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      min={0}
-                      max={90}
-                      step={1}
-                      value={Math.round(clamp(draft.advanced.conditionDiscounts[cond] * 100, 0, 90))}
-                      className="h-11 rounded-xl bg-surface px-3 text-sm text-foreground ring-1 ring-border focus:outline-none focus:ring-2 focus:ring-accentStrong"
-                      onChange={(e) => {
-                        const pct = clamp(Number(e.target.value), 0, 90);
-                        setDraft((d) => ({
-                          ...d,
-                          advanced: {
-                            ...d.advanced,
-                            conditionDiscounts: { ...d.advanced.conditionDiscounts, [cond]: pct / 100 },
-                          },
-                        }));
-                        setSavedAtIso(null);
-                      }}
-                    />
-                    <div className="text-[11px] font-medium text-muted">%</div>
-                  </label>
-                ))}
-              </div>
-              <div className="text-xs leading-5 text-muted">Applied to the benchmark before sell rounding.</div>
-            </div>
-
-            <div className="grid gap-2">
-              <div className="text-sm font-semibold text-foreground">Sell rounding preset</div>
-              <div className="grid grid-cols-3 rounded-xl bg-surface2 p-1 text-sm font-semibold text-muted shadow-sm ring-1 ring-border">
-                {(["off", "conservative", "retail"] as const).map((p) => (
+                {(["margin", "balance", "volume"] as const).map((p) => (
                   <button
                     key={p}
                     type="button"
                     className={[
-                      "h-10 rounded-lg transition",
-                      draft.advanced.sellRoundingPreset === p
-                        ? "bg-surface text-foreground shadow-sm ring-1 ring-border"
-                        : "hover:bg-surface/70 hover:text-foreground",
+                      "rounded-2xl p-4 text-left ring-1 transition",
+                      simplePreset === p
+                        ? "bg-surface text-foreground ring-border shadow-sm"
+                        : "bg-surface2 text-muted ring-border hover:bg-surface",
                     ].join(" ")}
                     onClick={() => {
-                      setDraft((d) => ({ ...d, advanced: { ...d.advanced, sellRoundingPreset: p } }));
+                      setDraft((d) => ({ ...d, advanced: SIMPLE_PRESETS[p] }));
                       setSavedAtIso(null);
                     }}
                   >
-                    {presetLabel(p)}
+                    <div className="text-sm font-semibold">{simplePresetLabel(p)}</div>
+                    <div className="mt-1 text-[11px] leading-4 text-muted">
+                      {p === "margin" ? "Higher margin" : p === "balance" ? "Default" : "Faster sales"}
+                    </div>
                   </button>
                 ))}
               </div>
-              <div className="text-xs leading-5 text-muted">Retail rounds to $1, Conservative rounds to $0.50, Off keeps decimals.</div>
             </div>
+
+            <div className="grid gap-2">
+              <div className="flex items-end justify-between gap-3">
+                <div className="text-sm font-semibold text-foreground">Profit ↔ Volume</div>
+                <div className="shrink-0 rounded-full bg-surface2 px-2 py-1 text-xs font-semibold tabular-nums text-muted ring-1 ring-border">
+                  {simplePct}
+                </div>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={simplePct}
+                className="w-full accent-accentStrong"
+                onChange={(e) => {
+                  const pct = clamp(Number(e.target.value), 0, 100);
+                  const t = pct / 100;
+                  const preset = presetFromT(t);
+                  setDraft((d) => ({ ...d, advanced: mapSimpleToAdvanced({ preset, t }) }));
+                  setSavedAtIso(null);
+                }}
+              />
+              <div className="grid grid-cols-3 text-xs font-semibold text-muted">
+                <div>Margin</div>
+                <div className="text-center">Balance</div>
+                <div className="text-right">Volume</div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-surface2 p-4 ring-1 ring-border">
+              <div className="text-sm font-semibold text-foreground">What this means</div>
+              <div className="mt-3 grid gap-2 text-xs text-muted">
+                <div className="flex items-start justify-between gap-3">
+                  <div>Suggested buy</div>
+                  <div className="font-semibold tabular-nums text-foreground">
+                    ~{Math.round(draft.advanced.buylistMultiplier * 100)}% of benchmark
+                  </div>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <div>Round buy suggestions</div>
+                  <div className="font-semibold text-foreground">{draft.advanced.buyRounding === 1 ? "$1.00" : "$0.50"}</div>
+                </div>
+                <div className="grid gap-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>Adjust sell by condition</div>
+                    <div />
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>Near mint</div>
+                    <div className="font-semibold tabular-nums text-foreground">
+                      -{Math.round(draft.advanced.conditionDiscounts.nm * 100)}%
+                    </div>
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>Light play</div>
+                    <div className="font-semibold tabular-nums text-foreground">
+                      -{Math.round(draft.advanced.conditionDiscounts.lp * 100)}%
+                    </div>
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>Moderate play</div>
+                    <div className="font-semibold tabular-nums text-foreground">
+                      -{Math.round(draft.advanced.conditionDiscounts.mp * 100)}%
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <div>Round sell prices</div>
+                  <div className="font-semibold text-foreground">{sellRoundingLabel(draft.advanced.sellRoundingPreset)}</div>
+                </div>
+              </div>
+            </div>
+
+            {pricingUiMode === "expert" ? (
+              expertControls
+            ) : (
+              <details className="rounded-2xl bg-surface2 p-4 ring-1 ring-border">
+                <summary className="cursor-pointer select-none text-sm font-semibold text-foreground">
+                  Expert settings
+                </summary>
+                <div className="mt-4">{expertControls}</div>
+              </details>
+            )}
           </div>
         </section>
 

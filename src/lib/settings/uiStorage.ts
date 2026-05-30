@@ -1,5 +1,4 @@
-const KEY = 'cardscout:settings-ui:v1'
-const LEGACY_KEY = 'tcgpricer:settings-ui:v1'
+const KEY = 'tcgpricer:settings-ui:v1'
 
 export type PricingUiMode = 'simple' | 'expert'
 
@@ -22,22 +21,10 @@ export function getPricingUiMode(): PricingUiMode {
   const ls = getLocalStorage()
   if (!ls) return 'simple'
   const raw = ls.getItem(KEY)
-  if (raw) {
-    try {
-      const v = JSON.parse(raw) as unknown
-      const m = (v as { pricingMode?: unknown } | null)?.pricingMode
-      return m === 'expert' ? 'expert' : 'simple'
-    } catch {
-      return 'simple'
-    }
-  }
-
-  const legacy = ls.getItem(LEGACY_KEY)
-  if (!legacy) return 'simple'
+  if (!raw) return 'simple'
   try {
-    const v = JSON.parse(legacy) as unknown
+    const v = JSON.parse(raw) as unknown
     const m = (v as { pricingMode?: unknown } | null)?.pricingMode
-    ls.setItem(KEY, JSON.stringify({ pricingMode: m === 'expert' ? 'expert' : 'simple' }))
     return m === 'expert' ? 'expert' : 'simple'
   } catch {
     return 'simple'

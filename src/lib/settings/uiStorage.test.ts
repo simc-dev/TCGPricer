@@ -39,8 +39,8 @@ describe('uiStorage', () => {
     Object.defineProperty(window, 'localStorage', { value: original, configurable: true })
   })
 
-  it('returns simple for invalid JSON (new key)', () => {
-    window.localStorage.setItem('cardscout:settings-ui:v1', '{not json')
+  it('returns simple for invalid JSON', () => {
+    window.localStorage.setItem('tcgpricer:settings-ui:v1', '{not json')
     expect(getPricingUiMode()).toBe('simple')
   })
 
@@ -49,12 +49,7 @@ describe('uiStorage', () => {
     expect(getPricingUiMode()).toBe('expert')
   })
 
-  it('returns simple for invalid legacy JSON', () => {
-    window.localStorage.setItem('tcgpricer:settings-ui:v1', '{not json')
-    expect(getPricingUiMode()).toBe('simple')
-  })
-
-  it('guards invalid legacy values', () => {
+  it('guards invalid values', () => {
     window.localStorage.setItem('tcgpricer:settings-ui:v1', JSON.stringify({ pricingMode: 'lol' }))
     expect(getPricingUiMode()).toBe('simple')
   })

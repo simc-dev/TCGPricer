@@ -1,4 +1,4 @@
-import type { InventoryState } from './types'
+import type { InventoryEvent, InventoryState } from './types'
 
 export type InventoryKpis = {
   uniqueCount: number
@@ -13,11 +13,14 @@ export function computeInventoryKpis(state: InventoryState): InventoryKpis {
   let totalQuantity = 0
   let estimatedValueSgd = 0
 
+  const hasSuggestedSgd = (e: InventoryEvent): e is InventoryEvent & { suggestedSgd: number } =>
+    typeof e.suggestedSgd === 'number' && Number.isFinite(e.suggestedSgd)
+
   for (const it of items) {
     const qty = it.quantityTotal ?? 0
     totalQuantity += qty
 
-    const latest = it.events?.find((e) => typeof e.suggestedSgd === 'number' && Number.isFinite(e.suggestedSgd))
+    const latest = it.events?.find(hasSuggestedSgd)
     if (latest) {
       estimatedValueSgd += qty * latest.suggestedSgd
     }
